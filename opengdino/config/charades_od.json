@@ -1,0 +1,18 @@
+{
+  "train": [
+    {
+      "root": "/workspace/models/datasets/charades-bboxes/train/resized_images",
+      "anno": "/workspace/models/datasets/charades-bboxes/train/charades_train2.jsonl",
+      "label_map": "config/charades_label_map.json",
+      "dataset_mode": "odvg"
+    }
+  ],
+  "val": [
+    {
+      "root": "/workspace/models/datasets/charades-bboxes/test/resized_images",
+      "anno": "config/charades_coco.json",
+      "label_map": null,
+      "dataset_mode": "coco"
+    }
+  ]
+}
