@@ -153,7 +153,9 @@ label_list = [
   "sink",
   "stove",
   "toaster",
-  "kettle"
+  "kettle",
+  "tap",
+  "iron"
 ]
 
 # label_list = [

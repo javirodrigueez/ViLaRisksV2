@@ -17,3 +17,5 @@ opengdino/logs*
 opengdino/weights/*
 actionclip/charades_files
 actionclip/weights/*
+annotation_scripts/gpt_annotations/*.csv
+annotation_scripts/gpt_annotations/*.txt

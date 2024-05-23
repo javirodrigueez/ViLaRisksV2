@@ -22,7 +22,6 @@ class RisksDataset(Dataset):
         #         self.labels.append(self.labels_map[data[0]])
         self.descriptions = data_path['description'].values
         self.labels = data_path['risk'].apply(lambda x: self.labels_map[x]).values
-        print(len(self.descriptions), len(self.labels))
 
     def __len__(self):
         return len(self.labels)

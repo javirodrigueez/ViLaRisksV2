@@ -5,6 +5,18 @@
 # $1: Path to the input video
 # $2: Path to the output directory
 
+# functions
+extract_video_name() {
+    local video_path="$1"
+    # Get the base name of the path (i.e., the file name with extension)
+    local file_name=$(basename "$video_path")
+    # Remove the file extension
+    local video_name="${file_name%.*}"
+    echo "$video_name"
+}
+
+# init
+video_name=$(extract_video_name "$1")
 # check video exists
 if [ -f "$1" ]; then
     echo "Video check correct."
@@ -35,9 +47,20 @@ cp opengdino/logs_prediction/results-0.pkl $2/results.pkl
 echo "Executing sevila questions..."
 python sevila_risks.py $1 $2/sevila_answers.csv
 
+# execute actionCLIP
+echo "Executing actionCLIP..."
+cd actionclip/charades_files
+python filter_id.py $video_name
+python get_frame_labels.py filtered_output.csv filtered_annotation.txt fullverbs.csv --verbs
+cd ..
+bash scripts/run_inference.sh ./configs/charades/charades_inference.yaml ../$2/sevila_answers.csv
+rm charades_files/filtered_output.csv charades_files/filtered_annotation.txt
+cd ..
 # generate final results
 echo "Generating final results..."
-python gendesc_and_classify.py --objects_file $2/results.pkl --answer_file $2/sevila_answers.csv --label_map opengdino/config/charades_label_map.json
+python gendesc_and_classify.py --objects_file $2/results.pkl --answer_file $2/sevila_answers.csv \
+    --label_map opengdino/config/charades_label_map.json  \
+    --verbs_map actionclip/charades_files/verbs_map.json
 
 # remove temporal files
 rm -r $2/frames

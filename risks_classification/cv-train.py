@@ -8,6 +8,7 @@ Options:
     -h --help    Show this screen.
     --batch_size=<int>    Batch size [default: 64]
     --model=<model>   Model to use. Possible values: distilbert|xlmroberta|bert|deberta [default: distilbert]
+    --clf=<clf>   Classifier to use. Possible values: linear|mlp [default: linear]
 
 Arguments:
     <trainset>    Path to the training data. Expected in TSV format with columns: label, description.
@@ -24,14 +25,15 @@ from sklearn.model_selection import StratifiedKFold
 import numpy as np
 import pandas as pd
 import wandb
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 args = docopt(__doc__)
 wandb.init(mode='disabled')
 model_name = args['--model']
 
 if model_name == 'distilbert':
-    ckpt = 'distilbert-base-uncased'
-    #ckpt = 'distilbert/distilbert-base-uncased-finetuned-sst-2-english'
+    #ckpt = 'distilbert-base-uncased'
+    ckpt = 'distilbert/distilbert-base-uncased-finetuned-sst-2-english'
 elif model_name == 'xlmroberta':
     ckpt = 'xlm-roberta-base'
 elif model_name == 'bert':
@@ -44,7 +46,7 @@ else:
 
 # Cargar datos
 data_path = args['<trainset>']
-data_frame = pd.read_csv(data_path, sep='\t')
+data_frame = pd.read_csv(data_path, sep=',')
 labels = data_frame['risk'].values
 tokenizer = AutoTokenizer.from_pretrained(ckpt)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -72,8 +74,30 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(np.zeros(len(labels)), lab
     for name, param in model.named_parameters():
         if ('classifier' not in name) and ('pre_classifier' not in name) and ('pooler' not in name or ckpt=='bert-base-uncased'):
             param.requires_grad = False
-    in_features = model.classifier.in_features
-    model.classifier = torch.nn.Linear(in_features, 5)
+    
+    if ckpt != 'xlm-roberta-base':
+        in_features = model.classifier.in_features
+        if args['--clf'] == 'linear':
+            model.classifier = torch.nn.Linear(in_features, 5)
+        elif args['--clf'] == 'mlp':
+            model.classifier = torch.nn.Sequential(
+                torch.nn.LayerNorm(in_features),
+                torch.nn.Linear(in_features, in_features),
+                torch.nn.ReLU(),
+                torch.nn.Linear(in_features, 5)
+            )
+
+    else:
+        in_features = model.classifier.out_proj.in_features
+        if args['--clf'] == 'linear':
+            model.classifier.out_proj = torch.nn.Linear(in_features, 5)
+        elif args['--clf'] == 'mlp':
+            model.classifier.out_proj = torch.nn.Sequential(
+                torch.nn.LayerNorm(in_features),
+                torch.nn.Linear(in_features, in_features),
+                torch.nn.ReLU(),
+                torch.nn.Linear(in_features, 5)
+            )
     model.to(device)
 
     # Deberta adaptation
@@ -85,7 +109,7 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(np.zeros(len(labels)), lab
     criterion = CrossEntropyLoss()
 
     # Entrenamiento
-    for epoch in tqdm(range(epochs)):
+    for epoch in range(epochs):
         model.train()
         for batch in train_loader:
             inputs = {k: v.to(device) for k, v in batch.items() if k != 'labels'}
@@ -95,10 +119,26 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(np.zeros(len(labels)), lab
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
+        if epoch % 5 == 0:
+            #validation
+            model.eval()
+            total, correct = 0, 0
+            with torch.no_grad():
+                for batch in val_loader:
+                    inputs = {k: v.to(device) for k, v in batch.items() if k != 'labels'}
+                    labels = batch['labels'].to(device)
+                    outputs = model(**inputs)
+                    _, predicted = torch.max(outputs.logits, 1)
+                    total += labels.size(0)
+                    correct += (predicted == labels).sum().item()
+            accuracy = correct / total
+            print(f'Epoch {epoch+1} accuracy: {accuracy}')
 
     # Validación
     model.eval()
     total, correct = 0, 0
+    all_preds = []
+    all_labels = []
     with torch.no_grad():
         for batch in val_loader:
             inputs = {k: v.to(device) for k, v in batch.items() if k != 'labels'}
@@ -107,6 +147,20 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(np.zeros(len(labels)), lab
             _, predicted = torch.max(outputs.logits, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+    
+    # Confusion matrix
+    # import matplotlib.pyplot as plt
+    # import seaborn as sns
+    # labels_map = [0,1,2,3,4]
+    # cm = confusion_matrix(all_labels, all_preds)
+    # plt.figure(figsize=(8, 6))
+    # sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=labels_map, yticklabels=labels_map)
+    # plt.xlabel('Predicted')
+    # plt.ylabel('Actual')
+    # plt.title('Confusion Matrix')
+    # plt.savefig(f'misc/confusion_matrix_{fold}.png')
 
     accuracy = correct / total
     if accuracy > max_accuracy:
@@ -116,6 +170,7 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(np.zeros(len(labels)), lab
         tokenizer.save_pretrained(model_path)
     print(f'Fold {fold+1} accuracy: {accuracy}')
     results.append(accuracy)
+    # Confusion matrix
 
 # Promediar y mostrar resultados finales
 print(f'Mean accuracy across folds: {np.mean(results)}')

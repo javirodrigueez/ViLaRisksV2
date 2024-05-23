@@ -16,7 +16,7 @@ import yaml
 from dotmap import DotMap
 import pprint
 import numpy
-from modules.Visual_Prompt import visual_prompt
+from modules_action.Visual_Prompt import visual_prompt
 from utils.Augmentation import get_augmentation
 import torch
 from utils.Text_Prompt import *
@@ -37,7 +37,7 @@ class ImageCLIP(nn.Module):
     def forward(self, image):
         return self.model.encode_image(image)
 
-def validate(epoch, val_loader, classes, device, model, fusion_model, config, num_text_aug):
+def validate(epoch, val_loader, classes, device, model, fusion_model, config, num_text_aug, save_output):
     model.eval()
     fusion_model.eval()
     num = 0
@@ -81,6 +81,14 @@ def validate(epoch, val_loader, classes, device, model, fusion_model, config, nu
             indices_3 = indices_3.cpu()
             num += b
             f = open('saved_tensors/top5.txt', 'w')
+            if save_output != '':
+                import csv
+                f_risks = open(save_output, 'a')
+                question = 'What is doing the person?'
+                writer = csv.writer(f_risks)
+                indices_5_str = [str(i.item()) for i in indices_5[0]]
+                writer.writerow([question, ';'.join(indices_5_str), 'none'])
+                f_risks.close()
             for i in range(b):
                 if indices_1[i] in labels[i]:
                     corr_1 += 1
@@ -113,6 +121,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', '-cfg', default='')
     parser.add_argument('--log_time', default='')
+    parser.add_argument('--save_output', default='')
     args = parser.parse_args()
 
     f = open(args.config, 'r')
@@ -188,7 +197,7 @@ def main():
     classes, num_text_aug, text_dict = text_prompt(val_data)
 
     best_prec1 = 0.0
-    prec1 = validate(start_epoch, val_loader, classes, device, model, fusion_model, config, num_text_aug)
+    prec1 = validate(start_epoch, val_loader, classes, device, model, fusion_model, config, num_text_aug, args.save_output)
 
 if __name__ == '__main__':
     main()
