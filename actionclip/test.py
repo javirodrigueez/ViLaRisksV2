@@ -51,6 +51,7 @@ def validate(epoch, val_loader, classes, device, model, fusion_model, config, nu
     with torch.no_grad():
         text_inputs = classes.to(device)
         text_features = model.encode_text(text_inputs)
+        f = open('saved_tensors/top5.txt', 'w')
         for iii, (image, class_id, filename) in enumerate(tqdm(val_loader)):
             image = image.view((-1, config.data.num_segments, 3) + image.size()[-2:])
             b, t, c, h, w = image.size()
@@ -80,14 +81,14 @@ def validate(epoch, val_loader, classes, device, model, fusion_model, config, nu
             indices_5 = indices_5.cpu()
             indices_3 = indices_3.cpu()
             num += b
-            f = open('saved_tensors/top5.txt', 'w')
             if save_output != '':
                 import csv
                 f_risks = open(save_output, 'a')
                 question = 'What is doing the person?'
                 writer = csv.writer(f_risks)
                 indices_5_str = [str(i.item()) for i in indices_5[0]]
-                writer.writerow([question, ';'.join(indices_5_str), 'none'])
+                indices_5_str = ';'.join(indices_5_str)
+                writer.writerow([question, indices_5_str, 'none'])
                 f_risks.close()
             for i in range(b):
                 if indices_1[i] in labels[i]:
@@ -95,17 +96,20 @@ def validate(epoch, val_loader, classes, device, model, fusion_model, config, nu
                 for j in indices_5[i]:
                     if j in labels[i]:
                         corr_5 += 1
+                        break
                 for j in indices_3[i]:
                     if j in labels[i]:
                         corr_3 += 1
-                f.write(f'{filename[i]} {class_id[i]} {indices_5[i]}\n')
+                        break
+                indices_5_str = [str(i.item()) for i in indices_5[i]]
+                f.write(f'{filename[i]} {class_id[i]} {';'.join(indices_5_str)}\n')
                 # if class_id[i] in indices_5[i]:
                 #     corr_5 += 1
-            f.close()
+        f.close()
     similarities_cpu = torch.cat(similarities_cpu, dim=0)
     torch.save(similarities_cpu, os.path.join('./saved_tensors', 'similarities_cpu.pt'))
     with open(os.path.join('./saved_tensors', 'filenames.txt'), 'w') as f:
-        for file in zip(filenames):
+        for file in filenames:
             f.write(f'{file}\n')
     top1 = float(corr_1) / num * 100
     top5 = float(corr_5) / num * 100

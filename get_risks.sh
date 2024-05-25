@@ -59,7 +59,7 @@ cd ..
 # generate final results
 echo "Generating final results..."
 python gendesc_and_classify.py --objects_file $2/results.pkl --answer_file $2/sevila_answers.csv \
-    --label_map opengdino/config/charades_label_map.json  \
+    --label_map opengdino/config/charades_label_map_extended.json  \
     --verbs_map actionclip/charades_files/verbs_map.json
 
 # remove temporal files

@@ -8,7 +8,7 @@ data:
     split: 1
     batch_size: 8
     workers: 16
-    num_classes: 157
+    num_classes: 32
     image_tmpl: '{}-{:06d}.jpg'
     val_list: 'charades_files/valset.txt' #
     label_list: 'charades_files/verbs.csv'

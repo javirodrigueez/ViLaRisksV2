@@ -77,18 +77,20 @@ def get_main_object(bboxes):
     main_obj = main_objects[distances.index(min_dist)]
     return main_obj
 
-def get_main_action(obj, actions):
-    # get action with maximum similarity to main object
+def get_main_actions(obj, actions, top_n=3):
+    # Load the Word2Vec model
     print('loading word2vec...')
     wv = api.load('word2vec-google-news-300')
-    max_sim = 0
-    main_action = None
+    # Calculate similarities
+    similarities = []
     for action in actions:
         sim = wv.similarity(obj, action)
-        if sim > max_sim:
-            max_sim = sim
-            main_action = action
-    return main_action
+        similarities.append((action, sim))
+    # Sort the actions based on similarity scores in descending order
+    similarities.sort(key=lambda x: x[1], reverse=True)
+    # Get the top N actions
+    top_actions = similarities[:top_n]
+    return [action for action, sim in top_actions]
 
 def create_t5_model(t5_model):
     t5_tokenizer = T5TokenizerFast.from_pretrained(t5_model)
@@ -156,62 +158,64 @@ actions = actions.split(';')
 actions_str = [verbs_map[action] for action in actions]
 print('Top5 actions:', actions_str, '\n')
 # compute cosine similarity between main object and top5 actionclip actions
-main_action = get_main_action(main_obj_str, actions_str)
-print('Main action:', main_action, '\n')
+main_actions = get_main_actions(main_obj_str, actions_str)
+print('Main actions:', main_actions, '\n')
 
 ## Get responses
-prompt = "Create a brief technical description in a phrase of a home scene including the object: {}, the action: {}, the  age of the person: {}, and the scene: {}.".format(main_obj_str, main_action, age.strip('.'), room.strip('.'))
-if llm == 'gpt3-5':
-    params = create_api_call(prompt)
-    result = client.chat.completions.create(**params)
-    response = result.choices[0].message.content
-elif llm == 't5':
-    t5_tokenizer, t5_model = create_t5_model("google/flan-t5-xl")
-    t5_model.to(device)
-    t5_model.eval()
-    input_ids = t5_tokenizer(prompt, return_tensors='pt').input_ids.to(device)
-    response = t5_model.generate(input_ids, max_new_tokens=2000)
-    response = t5_tokenizer.decode(response.squeeze(), skip_special_tokens=True)
-elif llm == 'gemma':
-    tokenizer = AutoTokenizer.from_pretrained("google/gemma-1.1-2b-it")
-    model = AutoModelForCausalLM.from_pretrained("google/gemma-1.1-2b-it", torch_dtype=torch.bfloat16)
-    model.to(device)
-    input_ids = tokenizer(prompt, return_tensors="pt").to(device)
-    response = model.generate(**input_ids, max_new_tokens=2000)
-    response = tokenizer.decode(response.squeeze())
-elif llm == 'mistral':
-    tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2")
-    model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2", torch_dtype=torch.bfloat16)
-    model.to(device)
-    input_ids = tokenizer(prompt, return_tensors="pt").to(device)
-    response = model.generate(**input_ids, max_new_tokens=2000)
-    response = tokenizer.decode(response.squeeze())
-    response = response.replace('<s>', '').replace('</s>', '').split('\n')[-1]
-else:
-    raise ValueError('LLM not supported')
+for action in main_actions:
+    print('Action:', action)
+    prompt = "Create a brief technical description in a phrase of a home scene including the object: {}, the action: {}, the  age of the person: {}, and the scene: {}.".format(main_obj_str, action, age.strip('.'), room.strip('.'))
+    if llm == 'gpt3-5':
+        params = create_api_call(prompt)
+        result = client.chat.completions.create(**params)
+        response = result.choices[0].message.content
+    elif llm == 't5':
+        t5_tokenizer, t5_model = create_t5_model("google/flan-t5-xl")
+        t5_model.to(device)
+        t5_model.eval()
+        input_ids = t5_tokenizer(prompt, return_tensors='pt').input_ids.to(device)
+        response = t5_model.generate(input_ids, max_new_tokens=2000)
+        response = t5_tokenizer.decode(response.squeeze(), skip_special_tokens=True)
+    elif llm == 'gemma':
+        tokenizer = AutoTokenizer.from_pretrained("google/gemma-1.1-2b-it")
+        model = AutoModelForCausalLM.from_pretrained("google/gemma-1.1-2b-it", torch_dtype=torch.bfloat16)
+        model.to(device)
+        input_ids = tokenizer(prompt, return_tensors="pt").to(device)
+        response = model.generate(**input_ids, max_new_tokens=2000)
+        response = tokenizer.decode(response.squeeze())
+    elif llm == 'mistral':
+        tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2")
+        model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2", torch_dtype=torch.bfloat16)
+        model.to(device)
+        input_ids = tokenizer(prompt, return_tensors="pt").to(device)
+        response = model.generate(**input_ids, max_new_tokens=2000)
+        response = tokenizer.decode(response.squeeze())
+        response = response.replace('<s>', '').replace('</s>', '').split('\n')[-1]
+    else:
+        raise ValueError('LLM not supported')
 
-## Risks assessment
-# define model
-tokenizer = AutoTokenizer.from_pretrained(ra_model)
-ckpt = 'distilbert/distilbert-base-uncased-finetuned-sst-2-english'
-model = AutoModelForSequenceClassification.from_pretrained(ckpt)
-in_features = model.classifier.in_features
-model.classifier = torch.nn.Sequential(
-    torch.nn.LayerNorm(in_features),
-    torch.nn.Linear(in_features, 368),
-    torch.nn.ReLU(),
-    torch.nn.Linear(368, 5)
-)
-# load weights
-model.load_state_dict(torch.load(f'{ra_model}/best_model.pth'))
-model.to(device)
-model.eval()
+    ## Risks assessment
+    # define model
+    tokenizer = AutoTokenizer.from_pretrained(ra_model)
+    ckpt = 'distilbert/distilbert-base-uncased-finetuned-sst-2-english'
+    model = AutoModelForSequenceClassification.from_pretrained(ckpt)
+    in_features = model.classifier.in_features
+    model.classifier = torch.nn.Sequential(
+        torch.nn.LayerNorm(in_features),
+        torch.nn.Linear(in_features, 368),
+        torch.nn.ReLU(),
+        torch.nn.Linear(368, 5)
+    )
+    # load weights
+    model.load_state_dict(torch.load(f'{ra_model}/best_model.pth'))
+    model.to(device)
+    model.eval()
 
-# inference
-inputs = tokenizer(response, return_tensors='pt', padding=True, truncation=True)
-inputs = {k: v.to(device) for k, v in inputs.items()}
-outputs = model(**inputs)
-_, predicted = torch.max(outputs.logits, 1)
-risk = risks_labels_map[predicted.item()]
-print('Generated description:', response, '\n')
-print('Risk:', risk, '\n')
+    # inference
+    inputs = tokenizer(response, return_tensors='pt', padding=True, truncation=True)
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+    outputs = model(**inputs)
+    _, predicted = torch.max(outputs.logits, 1)
+    risk = risks_labels_map[predicted.item()]
+    print('Generated description:', response)
+    print('Risk:', risk, '\n')
