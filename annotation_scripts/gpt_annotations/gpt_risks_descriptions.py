@@ -46,7 +46,7 @@ def rephrase_description(description):
             "content": [
                 {
                     "type": "text",
-                    "text": "Rehpase the next sentence: {}".format(description)
+                    "text": "Rephrase the next sentence: {}".format(description)
                 }
             ],
             "seed": seed,
