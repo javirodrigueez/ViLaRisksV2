@@ -8,9 +8,9 @@ risks_classification/wandb
 risks_classification/risks_classifier_model
 build/
 salesforce_lavis.egg-info/
+evaluations/data
 data/
-risks_classification/risks_classifier_model/
-risks_classification/wandb/
+!risks_classification/data
 risks_classification/logs/
 opengdino/charades-bboxes
 opengdino/logs*
