@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Data
-age_groups = ['20-49', '50-69', '>70']
+age_groups = ['13-49', '50-69', '>70']
 charades_percentage = [83.3, 16.7, 0]
 etri_percentage = [50, 3, 47]
 custom_percentage = [41.7, 8.3, 50]

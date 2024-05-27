@@ -41,7 +41,7 @@ def main(args):
     video_frame_num = int(args['--nframes'])
     keyframe_num = int(args['--keyframes'])
     questions = [
-        ('How old is the person?', ['Child.', 'Adult.', 'Elder.']),
+        ('How old is the person?', ['Adult.', 'Elder.']),
         ('In which room of the house is the person?', ['Kitchen.', 'Living room.', 'Bedroom.', 'Bathroom.', 'Dining room.'])
     ]
 

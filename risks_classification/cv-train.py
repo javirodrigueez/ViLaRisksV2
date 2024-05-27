@@ -8,7 +8,7 @@ Options:
     -h --help    Show this screen.
     --batch_size=<int>    Batch size [default: 64]
     --model=<model>   Model to use. Possible values: distilbert|xlmroberta|bert|deberta [default: distilbert]
-    --clf=<clf>   Classifier to use. Possible values: linear|mlp [default: linear]
+    --clf=<clf>   Classifier to use. Possible values: linear|mlp|mlp2 [default: linear]
 
 Arguments:
     <trainset>    Path to the training data. Expected in TSV format with columns: label, description.
@@ -70,6 +70,7 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(np.zeros(len(labels)), lab
     val_loader = DataLoader(val_subsampler, batch_size=batch_size, shuffle=False)
 
     # Modelo
+    clf = args['--clf']
     model = AutoModelForSequenceClassification.from_pretrained(ckpt)
     for name, param in model.named_parameters():
         if ('classifier' not in name) and ('pre_classifier' not in name) and ('pooler' not in name or ckpt=='bert-base-uncased'):
@@ -82,9 +83,18 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(np.zeros(len(labels)), lab
         elif args['--clf'] == 'mlp':
             model.classifier = torch.nn.Sequential(
                 torch.nn.LayerNorm(in_features),
+                torch.nn.Linear(in_features, 368),
+                torch.nn.ReLU(),
+                torch.nn.Linear(368, 5)
+            )
+        elif args['--clf'] == 'mlp2':
+            model.classifier = torch.nn.Sequential(
+                torch.nn.LayerNorm(in_features),
                 torch.nn.Linear(in_features, in_features),
                 torch.nn.ReLU(),
-                torch.nn.Linear(in_features, 5)
+                torch.nn.Linear(in_features, 368),
+                torch.nn.ReLU(),
+                torch.nn.Linear(368, 5)
             )
 
     else:
@@ -94,9 +104,18 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(np.zeros(len(labels)), lab
         elif args['--clf'] == 'mlp':
             model.classifier.out_proj = torch.nn.Sequential(
                 torch.nn.LayerNorm(in_features),
+                torch.nn.Linear(in_features, 368),
+                torch.nn.ReLU(),
+                torch.nn.Linear(368, 5)
+            )
+        elif args['--clf'] == 'mlp2':
+            model.classifier.out_proj = torch.nn.Sequential(
+                torch.nn.LayerNorm(in_features),
                 torch.nn.Linear(in_features, in_features),
                 torch.nn.ReLU(),
-                torch.nn.Linear(in_features, 5)
+                torch.nn.Linear(in_features, 368),
+                torch.nn.ReLU(),
+                torch.nn.Linear(368, 5)
             )
     model.to(device)
 
@@ -132,7 +151,7 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(np.zeros(len(labels)), lab
                     total += labels.size(0)
                     correct += (predicted == labels).sum().item()
             accuracy = correct / total
-            print(f'Epoch {epoch+1} accuracy: {accuracy}')
+            #print(f'Epoch {epoch+1} accuracy: {accuracy}')
 
     # Validación
     model.eval()
@@ -170,9 +189,9 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(np.zeros(len(labels)), lab
         tokenizer.save_pretrained(model_path)
     print(f'Fold {fold+1} accuracy: {accuracy}')
     results.append(accuracy)
-    # Confusion matrix
 
 # Promediar y mostrar resultados finales
-print(f'Mean accuracy across folds: {np.mean(results)}')
-print(f'Max accuracy: {max_accuracy}')
+with open(f'logs/{model_name}_{clf}', 'w') as file:
+    file.write(f'Standard deviation: {np.std(results)}\n')
+    file.write(f'Max accuracy: {max_accuracy}\n')
 wandb.finish()

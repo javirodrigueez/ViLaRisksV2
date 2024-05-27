@@ -8,6 +8,7 @@ Options:
     -h --help               Show this screen.
     --llm=<llm>             Choose LLM to use: gpt3-5|t5|mistral|gemma [default: gpt3-5]
     --ra_model=<ra_model>   Path to risk assessment model [default: risks_classification/risks_classifier_model]
+    --euclidean_actions     Use euclidean distance to get actions [default: False]
 
 Arguments:
     <objects_file>      Path to the file containing the objects.
@@ -157,9 +158,14 @@ with open(answer_file, 'r') as file:
 actions = actions.split(';')
 actions_str = [verbs_map[action] for action in actions]
 print('Top5 actions:', actions_str, '\n')
+
+if args['--euclidean_actions']:
 # compute cosine similarity between main object and top5 actionclip actions
-main_actions = get_main_actions(main_obj_str, actions_str)
-print('Main actions:', main_actions, '\n')
+    main_actions = get_main_actions(main_obj_str, actions_str)
+    print('Main actions:', main_actions, '\n')
+else:
+    main_actions = actions_str[:3]
+    print('Main actions:', main_actions, '\n')
 
 ## Get responses
 for action in main_actions:

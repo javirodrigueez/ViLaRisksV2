@@ -3,6 +3,9 @@ import os
 import numpy as np
 import torch
 from PIL import Image, ImageDraw, ImageFont
+import sys
+
+sys.path.append("../groundingdino")
 
 # please make sure https://github.com/IDEA-Research/GroundingDINO is installed correctly.
 import groundingdino.datasets.transforms as T

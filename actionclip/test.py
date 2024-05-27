@@ -73,6 +73,8 @@ def validate(epoch, val_loader, classes, device, model, fusion_model, config, nu
             for i in class_id:
                 label = torch.tensor([int(j) for j in i.split(';')])
                 labels.append(label)
+            print(labels)
+            print('#####################')
             # --------------------------------
             values_1, indices_1 = similarity.topk(1, dim=-1)
             values_5, indices_5 = similarity.topk(5, dim=-1)
@@ -80,6 +82,7 @@ def validate(epoch, val_loader, classes, device, model, fusion_model, config, nu
             indices_1 = indices_1.cpu()
             indices_5 = indices_5.cpu()
             indices_3 = indices_3.cpu()
+            print(indices_3)
             num += b
             if save_output != '':
                 import csv

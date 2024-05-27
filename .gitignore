@@ -19,3 +19,6 @@ actionclip/charades_files
 actionclip/weights/*
 annotation_scripts/gpt_annotations/*.csv
 annotation_scripts/gpt_annotations/*.txt
+actionclip/saved_tensors/*
+opengdino/risks_eval/bbox.jpg
+risks_classification/tests_model/

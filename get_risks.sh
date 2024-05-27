@@ -63,4 +63,4 @@ python gendesc_and_classify.py --objects_file $2/results.pkl --answer_file $2/se
     --verbs_map actionclip/charades_files/verbs_map.json
 
 # remove temporal files
-rm -r $2/frames
+#rm -r $2/frames
