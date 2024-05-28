@@ -2,7 +2,7 @@
 
 * Authors: [Javier Rodriguez-Juan](https://scholar.google.es/citations?user=z9qLOmwAAAAJ&hl=es&oi=ao), [David Ortiz-Perez](https://scholar.google.es/citations?user=iDKz098AAAAJ&hl=es&oi=ao), [Jose Garcia-Rodriguez](https://scholar.google.es/citations?user=GNTkqaYAAAAJ&hl=es), [David Tomás](https://scholar.google.es/citations?user=SdEXK_QAAAAJ&hl=es) and [Grzegorz J. Nalepa](https://scholar.google.es/citations?user=D-h16N8AAAAJ&hl=es&oi=ao)
 
-![Architecture image](.assets/arch.png)
+![Architecture image](.assets/arch-new.png)
 
 
 This study proposes an open environment, multi-label risk classification framework that outputs possible risks based on an input video. The framework consists of an ensemble of models covering object detection, action recognition, context understanding and text classification tasks. Each model is evaluated separately in the context of home environments, with the overall framework performing well in each evaluation after fine tuning. The models were evaluated using a combination of several datasets, including Charades, ETRI-Activity3D, and custom video question answering and risk datasets. This study exploits the ability of large language models to interpret semantic visual features combined with textual input in order to understand the context in which the person is placed. The framework's ability to output multiple risks and its cross-domain capabilities make it a powerful tool that can enhance current risk management systems in a variety of scenarios, such as homes, construction sites and industry.
