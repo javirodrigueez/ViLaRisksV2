@@ -1,6 +1,6 @@
-# [Neurocomputing] Integrating Advanced Vision-language Models for Context Recognition in Risks Assessment
+# Leveraging Video-language Model for Risks Assessment
 
-* Authors: [Javier Rodriguez-Juan](https://scholar.google.es/citations?user=z9qLOmwAAAAJ&hl=es&oi=ao), [David Ortiz-Perez](https://scholar.google.es/citations?user=iDKz098AAAAJ&hl=es&oi=ao), [Jose Garcia-Rodriguez](https://scholar.google.es/citations?user=GNTkqaYAAAAJ&hl=es), [David Tomás](https://scholar.google.es/citations?user=SdEXK_QAAAAJ&hl=es) and [Grzegorz J. Nalepa](https://scholar.google.es/citations?user=D-h16N8AAAAJ&hl=es&oi=ao)
+* Author: [Javier Rodriguez-Juan](https://scholar.google.es/citations?user=z9qLOmwAAAAJ&hl=es&oi=ao)
 
 ![Architecture image](.assets/arch-new.png)
 
