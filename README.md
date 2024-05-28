@@ -1,4 +1,4 @@
-# Leveraging Video-language Model for Risks Assessment
+# Leveraging Video-language Models for Risks Assessment
 
 * Author: [Javier Rodriguez-Juan](https://scholar.google.es/citations?user=z9qLOmwAAAAJ&hl=es&oi=ao)
 
